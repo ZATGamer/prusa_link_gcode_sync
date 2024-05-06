@@ -5,7 +5,7 @@ import os
 from pathlib import Path
 import datetime
 import threading
-import sync_database
+# import sync_database
 import renamer
 
 
@@ -65,7 +65,7 @@ def printing_file(session, printer, file):
 
 
 def copy_file(session, printer, os_path, file):
-    db = sync_database.db_setup_connect(db_file)
+    # db = sync_database.db_setup_connect(db_file)
     url = 'http://{}/api/v1/files/{}{}'.format(printer['ip'], printer['root_folder'], file)
     local_file_path = os_path + file
     file_size = get_file_size(local_file_path)
@@ -79,9 +79,9 @@ def copy_file(session, printer, os_path, file):
         # Update the database with current file being uploaded.
         print('{}\n{}\n'.format(file, printer['ip']))
         sql = '''UPDATE state set job_name = '{}' WHERE printer_ip = '{}' '''.format(file, printer['ip'])
-        cur = db.cursor()
-        cur.execute(sql)
-        db.commit()
+        # cur = db.cursor()
+        # cur.execute(sql)
+        # db.commit()
 
         print('Copying: {} to Printer: {}'.format(local_file_path, printer['ip']))
         session.get('http://{}/api/printer'.format(printer['ip']))
@@ -90,9 +90,9 @@ def copy_file(session, printer, os_path, file):
         except requests.exceptions.ChunkedEncodingError:
             print("Connection Force Closed, Probably because the printer loaded the file preview on the screen.")
         sql = '''UPDATE state set job_name = '{}' WHERE printer_ip = '{}' '''.format(None, printer['ip'])
-        cur = db.cursor()
-        cur.execute(sql)
-        db.commit()
+        # cur = db.cursor()
+        # cur.execute(sql)
+        # db.commit()
     else:
         print('Skipping {} as its file size is {}'.format(local_file_path, file_size))
 
@@ -150,12 +150,12 @@ def copy_files_to_printer(session, printer, files):
     print("Copying Files to printers...")
     for file in files:
         file_copy = threading.Thread(target=copy_file, args=(session, printer, printer['clone_root'], file))
-        copy_status = threading.Thread(target=testing, args=(printer,))
+        # copy_status = threading.Thread(target=testing, args=(printer,))
         file_copy.start()
         # time.sleep(.1)
-        copy_status.start()
+        # copy_status.start()
         file_copy.join()
-        copy_status.join()
+        # copy_status.join()
 
 
 def create_session(printer):
@@ -199,46 +199,46 @@ def cleanup_empty_folders(session, printer, folders):
         #     print("KEEP FOLDER {}".format(folder))
 
 
-def get_file_transfer_status(printer):
-    db = sync_database.db_setup_connect(db_file)
-    x = 0
-    while(True):
-        url = 'http://{}/api/v1/status'.format(printer['ip'])
-        s = create_session_silent(printer)
-        raw_respon = s.get(url).content
-        response = json.loads(raw_respon)
-        # print(response)
-        if 'transfer' in response.keys():
-            sql = '''UPDATE state set progress = '{}' WHERE printer_ip = '{}' '''.format(response['transfer']['progress'], printer['ip'])
-            cur = db.cursor()
-            cur.execute(sql)
-            db.commit()
-            x = 6
-            # time.sleep(1)
-        else:
-            # print("Nothing Transferring")
-            sql = '''UPDATE state set progress = '{}' WHERE printer_ip = '{}' '''.format(
-                None, printer['ip'])
-            cur = db.cursor()
-            cur.execute(sql)
-            db.commit()
-            if x < 5:
-                #This was the first run of the loop, we will sleep for .25 of a second to see if things get better.
-                x += 1
-            else:
-                break
+# def get_file_transfer_status(printer):
+#     db = sync_database.db_setup_connect(db_file)
+#     x = 0
+#     while(True):
+#         url = 'http://{}/api/v1/status'.format(printer['ip'])
+#         s = create_session_silent(printer)
+#         raw_respon = s.get(url).content
+#         response = json.loads(raw_respon)
+#         # print(response)
+#         if 'transfer' in response.keys():
+#             sql = '''UPDATE state set progress = '{}' WHERE printer_ip = '{}' '''.format(response['transfer']['progress'], printer['ip'])
+#             cur = db.cursor()
+#             cur.execute(sql)
+#             db.commit()
+#             x = 6
+#             # time.sleep(1)
+#         else:
+#             # print("Nothing Transferring")
+#             sql = '''UPDATE state set progress = '{}' WHERE printer_ip = '{}' '''.format(
+#                 None, printer['ip'])
+#             cur = db.cursor()
+#             cur.execute(sql)
+#             db.commit()
+#             if x < 5:
+#                 #This was the first run of the loop, we will sleep for .25 of a second to see if things get better.
+#                 x += 1
+#             else:
+#                 break
 
 
-def main(printer):
-    db = sync_database.db_setup_connect(db_file)
-    start = datetime.datetime.now()
-    s = create_session(printer)
-    delete, copy, folders = get_delete_copy(s, printer)
-    delete_files_from_printer(s, printer, delete)
-    copy_files_to_printer(s, printer, copy)
-    cleanup_empty_folders(s, printer, folders)
-    end = datetime.datetime.now()
-    print("Time to upload: {} for Printer: {}".format((end - start), printer['ip']))
+# def main(printer):
+#     db = sync_database.db_setup_connect(db_file)
+#     start = datetime.datetime.now()
+#     s = create_session(printer)
+#     delete, copy, folders = get_delete_copy(s, printer)
+#     delete_files_from_printer(s, printer, delete)
+#     copy_files_to_printer(s, printer, copy)
+#     cleanup_empty_folders(s, printer, folders)
+#     end = datetime.datetime.now()
+#     print("Time to upload: {} for Printer: {}".format((end - start), printer['ip']))
 
 
 def main_v2(printer):
@@ -252,8 +252,8 @@ def main_v2(printer):
     print("Time to upload: {} for Printer: {}".format((end - start), printer['ip']))
 
 
-def testing(printer):
-    get_file_transfer_status(printer)
+# def testing(printer):
+#     get_file_transfer_status(printer)
 
 
 def get_printers_from_config():
@@ -272,22 +272,22 @@ def get_printers_from_config():
     return printers
 
 
-def main_threads():
-    conn = sync_database.db_setup_connect(db_file)
-    # sync_database.data_setup(conn)
-    printers = sync_database.get_all_printers(conn)
-
-    threads = []
-    for printer in printers:
-        t = threading.Thread(target=main, args=[printers[printer]])
-        t.start()
-        # main(printers[printer], os_path, conn)
-        threads.append(t)
-        testing(printers[printer])
-    sql = '''SELECT printer_number, printer_ip, job_name, progress FROM state'''
-
-    for thread in threads:
-        thread.join()
+# def main_threads():
+#     conn = sync_database.db_setup_connect(db_file)
+#     # sync_database.data_setup(conn)
+#     printers = sync_database.get_all_printers(conn)
+#
+#     threads = []
+#     for printer in printers:
+#         t = threading.Thread(target=main, args=[printers[printer]])
+#         t.start()
+#         # main(printers[printer], os_path, conn)
+#         threads.append(t)
+#         testing(printers[printer])
+#     sql = '''SELECT printer_number, printer_ip, job_name, progress FROM state'''
+#
+#     for thread in threads:
+#         thread.join()
 
 
 def main_threads_config():
